@@ -1,0 +1,1433 @@
+
+package stepDefinitions;
+
+import static io.restassured.RestAssured.given;
+import static org.junit.Assert.assertEquals;
+
+import org.junit.Assert;
+import org.openqa.selenium.WebDriver;
+import files.Utils;
+import io.cucumber.java.en.And;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
+import io.restassured.builder.RequestSpecBuilder;
+import io.restassured.response.Response;
+
+import io.restassured.specification.RequestSpecification;
+
+public class ETProMobile extends Utils {
+	static RequestSpecification reqSpec;
+	static Response validation_responseObj;
+	static Response responseObj;
+	static String token;
+	static String empID;
+	static String empCode;
+	static String empName;
+	static String loginToken;
+	static String empRole;
+	static String leaveID;
+	static String manualLogID;
+	static String overtimeID;
+	static String scheduleID;
+	static String trainingID;
+	static String reimbursementID;
+	WebDriver driver;
+	
+	@Given("^payload to generate Token for User Authentication in cloud$")
+    public void payload_to_generate_token_for_user_authentication_in_cloud() throws Throwable {
+		reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+				.body("{\r\n"
+						+ "    \"username\": \"postman@zkteco.in\",\r\n"
+						+ "    \"password\": \"123456\"\r\n"
+						+ "}");
+
+    }
+
+    @When("^user calls generate Token API with POST http request$")
+    public void user_calls_generate_token_api_with_get_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("auth_token/");
+    }
+
+    @Then("^validate response code for generating token in Authorization$")
+    public void validate_response_code_for_generating_token_in_authorization() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    	token=getJsonPath(responseObj, "token");
+    	System.out.println("Token : "+token);
+    }
+    
+    @Given("^payload to retrieve logged in user profile$")
+    public void payload_to_retrieve_logged_in_user_profile() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+
+    }
+
+    @When("^user calls retrieve user API with GET http request$")
+    public void user_calls_retrieve_user_api_with_get_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("app_settings/");
+    }
+
+    @Then("^validate response code for retrieving user profile$")
+    public void validate_response_code_for_retrieving_user_profile() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    	empID=getJsonPath(responseObj, "emp_id");
+    	empCode =getJsonPath(responseObj, "emp_code");
+    	empName =getJsonPath(responseObj, "name");
+    	System.out.println("empID : "+empID);
+    	System.out.println("empCode : "+empCode);
+    	System.out.println("empName : "+empName);
+    }
+
+    
+    @Given("^payload for employee login$")
+    public void payload_for_employee_login() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"device_token\": \"10\",\r\n"
+    					+ "    \"client_category\": 0,\r\n"
+    					+ "    \"client_id\": \"123\"\r\n"
+    					+ "} ");
+    }
+
+    @When("^user calls employee login API with POST http request$")
+    public void user_calls_employee_login_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/log_in/?employee_id&");
+    }
+
+    @Then("^validate response code for employee login endpoint$")
+    public void validate_response_code_for_employee_login_endpoint() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    	loginToken=getJsonPath(responseObj, "token");
+    	empRole =getJsonPath(responseObj, "role");
+    	Assert.assertTrue(getJsonPath(responseObj, "employee_id").contains(empID))  ;
+    	System.out.println("loginToken : "+loginToken);
+    	System.out.println("empRole : "+empRole);
+    }
+
+    @And("^validate message in response body$")
+    public void validate_message_in_response_body() throws Throwable {
+    	assertEquals(getJsonPath(responseObj, "status_code"), "200");
+    }
+
+    @Given("^payload for employee logout$")
+    public void payload_for_employee_logout() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"token\":\""+loginToken+"\"\r\n"
+    					+ "}");
+    }
+
+    @When("^user calls employee logout API with POST http request$")
+    public void user_calls_employee_logout_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/sign_out/");
+    }
+
+    @Then("^validate response code for employee logout endpoint$")
+    public void validate_response_code_for_employee_logout_endpoint() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    	Assert.assertTrue(getJsonPath(responseObj, "status_code").contains("200"));
+    }
+    
+    @Given("^payload for employee reset password$")
+    public void payload_for_employee_reset_password() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"search_item\": \"1\",\r\n"
+    					+ "    \"is_cloud\": \"false\",\r\n"
+    					+ "    \"client\": \"123\",\r\n"
+    					+ "    \"company_name\": \"yes\",\r\n"
+    					+ "    \"language\": \"no\"\r\n"
+    					+ "}\r\n"
+    					+ "");
+    }
+
+    @When("^user calls employee reset password API with POST http request$")
+    public void user_calls_employee_reset_password_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/reset_password/");
+    }
+
+    @Then("^validate response code for employee reset password endpoint$")
+    public void validate_response_code_for_employee_reset_password_endpoint() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    	Assert.assertTrue(getJsonPath(responseObj, "status_code").contains("200"));
+    }
+    
+    @Given("^payload for sending announcement$")
+    public void payload_for_sending_anouncement() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"subject\": \"Testing\",\r\n"
+    					+ "    \"content\": \"Asish\",\r\n"
+    					+ "    \"category\": 2,\r\n"
+    					+ "    \"receiver_id\": \""+empID+"\",\r\n"
+    					+ "    \"create_time\": \"1594777867\"\r\n"
+    					+ "}");
+    }
+
+    @When("^user calls send announcement API with POST http request$")
+    public void user_calls_send_announcement_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("announcements/");
+    }
+
+    @Then("^validate response code for send announcement endpoint$")
+    public void validate_response_code_for_send_announcement_endpoint() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+ 
+    	Assert.assertTrue(getJsonPath(responseObj, "Result.subject").contains("Testing"))  ;
+    	Assert.assertTrue(getJsonPath(responseObj, "Result.content").contains("Asish"))  ;
+    	Assert.assertTrue(getJsonPath(responseObj, "Result.category").contains("2"))  ;
+    	Assert.assertTrue(getJsonPath(responseObj, "Result.receiver_id").contains(empID))  ;
+    	Assert.assertTrue(getJsonPath(responseObj, "Result.create_time").contains("1594777867"))  ;
+    	
+    }
+
+    @And("^validate message in response body for sending announcement$")
+    public void validate_message_in_response_body_for_sending_announcement() throws Throwable {
+    	assertEquals(getJsonPath(responseObj, "status_code"), "201");
+    }
+    
+    @Given("^payload for geting announcement$")
+    public void payload_for_geting_anouncement() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get announcement API with POST http request$")
+    public void user_calls_get_announcement_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("announcements/?page=1&page_size=10");
+    }
+
+    @Then("^validate response code for get announcement endpoint$")
+    public void validate_response_code_for_get_announcement_endpoint() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    	
+    }
+
+    @And("^validate message in response body for geting announcement$")
+    public void validate_message_in_response_body_for_geting_announcement() throws Throwable {
+    	assertEquals(getJsonPath(responseObj, "status_code"), "200");
+    }
+    
+    @Given("^payload for geting date in attendance$")
+    public void payload_for_geting_date_in_attendance() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get date API with POST http request$")
+    public void user_calls_get_date_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("date_choices/");
+    }
+
+    @Then("^validate response code for get date endpoint in Attendance$")
+    public void validate_response_code_for_get_date_endpoint_in_attendance() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for geting attendance summaries without pin$")
+    public void payload_for_geting_attendance_summary_in_attendance() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"message\" : \"hi\"\r\n"
+    					+ "}");
+    }
+
+    @When("^user calls get attendance summary without pin API with POST http request$")
+    public void user_calls_get_attendance_summary_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/"+empID+"/team_members_att_summaries/?employees="+empID+"&start_date=2020-06-15&end_date=2020-06-16");
+    }
+
+    @Then("^validate response code for get attendance summary without pin endpoint in Attendance$")
+    public void validate_response_code_for_get_attendance_summary_endpoint_in_attendance() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+	
+    @Given("^payload for geting attendance summaries with pin$")
+    public void payload_for_geting_attendance_summary_with_pin() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get attendance summary with pin API with POST http request$")
+    public void user_calls_get_attendance_summary__with_pin_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/"+empID+"/att_summaries/?start_date=2020-06-15&end_date=2020-06-16");
+    }
+
+    @Then("^validate response code for get attendance summary with pin endpoint in Attendance$")
+    public void validate_response_code_for_get_attendance_summary_with_pin_endpoint_in_attendance() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for creating transaction$")
+    public void payload_for_creating_transaction() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"latitude\": \"12.9891657\",\r\n"
+    					+ "    \"longitude\": \"77.6885258\"\r\n"
+    					+ "}");
+    }
+
+    @When("^user calls create transaction API with POST http request$")
+    public void user_calls_create_transaction_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("transactions/");
+    }
+
+    @Then("^validate response code for creating transaction$")
+    public void validate_response_code_for_creating_transaction() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for retrieving transaction$")
+    public void payload_for_retrieving_transaction() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.queryParam("emp_code", "10")
+    			.queryParam("date", "20200615");
+    }
+
+    @When("^user calls get transaction API with GET http request$")
+    public void user_calls_get_transaction_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("transactions/");
+    }
+
+    @Then("^validate response code for retrieving transaction$")
+    public void validate_response_code_for_retrieving_transaction() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for retrieving exception summary$")
+    public void payload_for_retrieving_exception_summary() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.queryParam("start_date", "2021-01-15")
+    			.queryParam("end_date", "2021-07-16");
+    }
+
+    @When("^user calls get exception summary API with GET http request$")
+    public void user_calls_get_exception_summary_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/"+empID+"/exception_summary/");
+    }
+
+    @Then("^validate response code for retrieving exception summary$")
+    public void validate_response_code_for_retrieving_exception_summary() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for retrieving self transaction$")
+    public void payload_for_retrieving_self_transaction() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.queryParam("start_date", "2021-01-15")
+    			.queryParam("end_date", "2021-07-16");
+    }
+
+    @When("^user calls get self transaction API with GET http request$")
+    public void user_calls_get_self_transaction_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/"+empID+"/transactions/");
+    }
+
+    @Then("^validate response code for retrieving self transaction$")
+    public void validate_response_code_for_retrieving_self_transaction() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+
+    @Given("^payload for retrieving employee info$")
+    public void payload_for_retrieving_employee_info() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.queryParam("stamp", "1594777867");
+    }
+
+    @When("^user calls get employee info API with GET http request$")
+    public void user_calls_get_employee_info_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("stamp2datetime/");
+    }
+
+    @Then("^validate response code for retrieving employee info$")
+    public void validate_response_code_for_retrieving_employee_info() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for retrieving stamp to date time$")
+    public void payload_for_retrieving_stamp_to_date_time() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.queryParam("emp_code", "01");
+    }
+
+    @When("^user calls get stamp to date time API with GET http request$")
+    public void user_calls_get_stamp_to_date_time_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/");
+    }
+
+    @Then("^validate response code for retrieving stamp to date time$")
+    public void validate_response_code_for_retrieving_stamp_to_date_time() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    @Given("^payload for retrieving date time to stamp$")
+    public void payload_for_retrieving_date_time_to_stamp() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.queryParam("dt", "2021-01-01 00:00:00");
+    }
+
+    @When("^user calls get date time to stamp API with GET http request$")
+    public void user_calls_get_date_time_to_stamp_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("datetime2stamp/");
+    }
+
+    @Then("^validate response code for retrieving date time to stamp$")
+    public void validate_response_code_for_retrieving_date_time_to_stamp() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for retrieving department info$")
+    public void payload_for_retrieving_department_info() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get department info API with GET http request$")
+    public void user_calls_get_department_info_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("departments/");
+    }
+
+    @Then("^validate response code for retrieving department info$")
+    public void validate_response_code_for_retrieving_department_info() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for retrieving leave categories$")
+    public void payload_for_retrieving_leave_categories() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get leave categories API with GET http request$")
+    public void user_calls_get_leave_categories_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("leave_categories/");
+    }
+
+    @Then("^validate response code for retrieving leave categories$")
+    public void validate_response_code_for_retrieving_leave_categories() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for applying leave$")
+    public void payload_for_applying_leave() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"leave_type\": \"1\",\r\n"
+    					+ "    \"start\": \"1594972212\",\r\n"
+    					+ "    \"end\": \"1594972236\",\r\n"
+    					+ "    \"leave_payment_type\":1,\r\n"
+    					+ "    \"day_type\": 1,\r\n"
+    					+ "    \"apply_reason\": \"test\"\r\n"
+    					+ "}");
+    }
+
+    @When("^user calls apply leave API with POST http request$")
+    public void user_calls_apply_leave_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/leaves/");
+    }
+
+    @Then("^validate response code for applying leave$")
+    public void validate_response_code_for_applying_leave() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for retrieving leave application$")
+    public void payload_for_retrieving_leave_application() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","application/json")
+    			.header("Authorization","jwt "+token)
+    			.queryParam("start_time_gte", "2020-07-02")
+    			.queryParam("emp_code", "00");
+    }
+
+    @When("^user calls get leave application API with GET http request$")
+    public void user_calls_get_leave_application_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/"+empID+"/leaves/");
+    }
+
+    @Then("^validate response code for retrieving leave application$")
+    public void validate_response_code_for_retrieving_leave_application() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for retrieving leave approval$")
+    public void payload_for_retrieving_leave_approval() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","approval/json")
+    			.header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get leave approval API with GET http request$")
+    public void user_calls_get_leave_approval_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/"+empID+"/leaves/team_members_leave/");
+    }
+
+    @Then("^validate response code for retrieving leave approval$")
+    public void validate_response_code_for_retrieving_leave_approval() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for approving leave$")
+    public void payload_for_approving_leave() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"approve_status\": 2\r\n"
+    					+ "}");
+    }
+
+    @When("^user calls approve leave API with POST http request$")
+    public void user_calls_approve_leave_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/leaves/"+leaveID+"/approve/");
+    }
+
+    @Then("^validate response code for approving leave$")
+    public void validate_response_code_for_approving_leave() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for revoking leave$")
+    public void payload_for_revoking_leave() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls revoke leave API with POST http request$")
+    public void user_calls_revoke_leave_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/leaves/"+leaveID+"/revoke/");
+    }
+
+    @Then("^validate response code for revoking leave$")
+    public void validate_response_code_for_revoking_leave() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for deleting leave$")
+    public void payload_for_deleting_leave() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls delete leave API with DELETE http request$")
+    public void user_calls_delete_leave_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.delete("employees/"+empID+"/leaves/"+leaveID+"/");
+    }
+
+    @Then("^validate response code for deleting leave$")
+    public void validate_response_code_for_deleting_leave() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for retrieving leave approval flow$")
+    public void payload_for_retrieving_leave_approval_flow() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","approval/json")
+    			.header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get leave approval flow API with GET http request$")
+    public void user_calls_get_leave_approval_flow_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("leaves/"+leaveID+"/approve_flows/");
+    }
+
+    @Then("^validate response code for retrieving leave approval flow$")
+    public void validate_response_code_for_retrieving_leave_approval_flow() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for retrieving manual log categories$")
+    public void payload_for_retrieving_manual_log_categories() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get manual log categories API with GET http request$")
+    public void user_calls_get_manual_log_categories_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("manual_log_categories/");
+    }
+
+    @Then("^validate response code for retrieving manual log categories$")
+    public void validate_response_code_for_retrieving_manual_log_categories() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for applying manual log$")
+    public void payload_for_applying_manual_log() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"punch_time\": \"1594971612\",\r\n"
+    					+ "    \"punch_state\": 1\r\n"
+    					+ "}");
+    }
+
+    @When("^user calls apply manual log API with POST http request$")
+    public void user_calls_apply_manual_log_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/manual_logs/");
+    }
+
+    @Then("^validate response code for applying manual log$")
+    public void validate_response_code_for_applying_manual_log() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    	manualLogID=getJsonPath(responseObj, "id");
+    	System.out.println("manualLogID "+manualLogID);
+    }
+    
+    @Given("^payload for retrieving manual log application$")
+    public void payload_for_retrieving_manual_log_application() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","application/json")
+    			.header("Authorization","jwt "+token)
+    			.queryParam("punch_time_gte", "2020-07-16");
+    }
+
+    @When("^user calls get manual log application API with GET http request$")
+    public void user_calls_get_manual_log_application_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/"+empID+"/manual_logs/");
+    }
+
+    @Then("^validate response code for retrieving manual log application$")
+    public void validate_response_code_for_retrieving_manual_log_application() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for retrieving manual log approval$")
+    public void payload_for_retrieving_manual_log_approval() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","approval/json")
+    			.header("Authorization","jwt "+token).queryParam("punch_time_gte", "2020-07-16");
+    }
+
+    @When("^user calls get manual log approval API with GET http request$")
+    public void user_calls_get_manual_log_approval_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/"+empID+"/team_members_manualogs/");
+    }
+
+    @Then("^validate response code for retrieving manual log approval$")
+    public void validate_response_code_for_retrieving_manual_log_approval() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for approving manual log$")
+    public void payload_for_approving_manual_log() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"approve_status\": 2\r\n"
+    					+ "}");
+    }
+
+    @When("^user calls approve manual log API with POST http request$")
+    public void user_calls_approve_manual_log_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/manual_logs/"+manualLogID+"/approve/");
+    }
+
+    @Then("^validate response code for approving manual log$")
+    public void validate_response_code_for_approving_manual_log() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for revoking manual log$")
+    public void payload_for_revoking_manual_log() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls revoke manual log API with POST http request$")
+    public void user_calls_revoke_manual_log_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/manual_logs/"+manualLogID+"/revoke/");
+    }
+
+    @Then("^validate response code for revoking manual log$")
+    public void validate_response_code_for_revoking_manual_log() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for deleting manual log$")
+    public void payload_for_deleting_manual_log() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls delete manual log API with POST http request$")
+    public void user_calls_delete_manual_log_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.delete("employees/"+empID+"/manual_logs/"+manualLogID+"/");
+    }
+
+    @Then("^validate response code for deleting manual log$")
+    public void validate_response_code_for_deleting_manual_log() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for retrieving manual log approval flow$")
+    public void payload_for_retrieving_manual_log_approval_flow() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","approval/json")
+    			.header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get manual log approval flow API with GET http request$")
+    public void user_calls_get_manual_log_approval_flow_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("manual_logs/"+manualLogID+"/approve_flows/");
+    }
+
+    @Then("^validate response code for retrieving manual log approval flow$")
+    public void validate_response_code_for_retrieving_manual_log_approval_flow() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for geting notification$")
+    public void payload_for_geting_notification() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get notification API with POST http request$")
+    public void user_calls_get_notification_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("notifications/");
+    }
+
+    @Then("^validate response code for get notification endpoint$")
+    public void validate_response_code_for_get_notification_endpoint() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    	
+    }
+
+    @And("^validate message in response body for geting notification$")
+    public void validate_message_in_response_body_for_geting_notification() throws Throwable {
+    	assertEquals(getJsonPath(responseObj, "status_code"), "200");
+    }
+
+    @Given("^payload for retrieving overtime categories$")
+    public void payload_for_retrieving_overtime_categories() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get overtime categories API with GET http request$")
+    public void user_calls_get_overtime_categories_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("overtime_catogries/");
+    }
+
+    @Then("^validate response code for retrieving overtime categories$")
+    public void validate_response_code_for_retrieving_overtime_categories() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for applying overtime$")
+    public void payload_for_applying_overtime() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"start\": \"1574971623\",\r\n"
+    					+ "    \"end\": \"1574971626\"\r\n"
+    					+ "}");
+    }
+
+    @When("^user calls apply overtime API with POST http request$")
+    public void user_calls_apply_overtime_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/overtimes/");
+    }
+
+    @Then("^validate response code for applying overtime$")
+    public void validate_response_code_for_applying_overtime() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    	overtimeID=getJsonPath(responseObj, "id");
+    	System.out.println("manualLogID "+manualLogID);
+    }
+    
+    @Given("^payload for retrieving overtime application$")
+    public void payload_for_retrieving_overtime_application() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","application/json")
+    			.header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get overtime application API with GET http request$")
+    public void user_calls_get_overtime_application_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/"+empID+"/overtimes/");
+    }
+
+    @Then("^validate response code for retrieving overtime application$")
+    public void validate_response_code_for_retrieving_overtime_application() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for retrieving overtime approval$")
+    public void payload_for_retrieving_overtime_approval() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","approval/json")
+    			.header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get overtime approval API with GET http request$")
+    public void user_calls_get_overtime_approval_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/"+empID+"/team_members_overtimes/");
+    }
+
+    @Then("^validate response code for retrieving overtime approval$")
+    public void validate_response_code_for_retrieving_overtime_approval() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for approving overtime$")
+    public void payload_for_approving_overtime() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"approve_status\": 2\r\n"
+    					+ "}");
+    }
+
+    @When("^user calls approve overtime API with POST http request$")
+    public void user_calls_approve_overtime_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/overtimes/"+overtimeID+"/approve/");
+    }
+
+    @Then("^validate response code for approving overtime$")
+    public void validate_response_code_for_approving_overtime() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for revoking overtime$")
+    public void payload_for_revoking_overtime() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls revoke overtime API with POST http request$")
+    public void user_calls_revoke_overtime_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/overtimes/"+overtimeID+"/revoke/");
+    }
+
+    @Then("^validate response code for revoking overtime$")
+    public void validate_response_code_for_revoking_overtime() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for deleting overtime$")
+    public void payload_for_deleting_overtime() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls delete overtime API with DELETE http request$")
+    public void user_calls_delete_overtime_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.delete("employees/"+empID+"/overtimes/"+overtimeID+"/");
+    }
+
+    @Then("^validate response code for deleting overtime$")
+    public void validate_response_code_for_deleting_overtime() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for retrieving overtime approval flow$")
+    public void payload_for_retrieving_overtime_approval_flow() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","approval/json")
+    			.header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get overtime approval flow API with GET http request$")
+    public void user_calls_get_overtime_approval_flow_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("overtimes/"+overtimeID+"/approve_flows/");
+    }
+
+    @Then("^validate response code for retrieving overtime approval flow$")
+    public void validate_response_code_for_retrieving_overtime_approval_flow() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for geting work time$")
+    public void payload_for_geting_work_time() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","application/json")
+    			.header("Authorization","jwt "+token)
+    			.queryParam("current_day", "1594973036");    
+    	}
+
+    @When("^user calls get work time API with POST http request$")
+    public void user_calls_get_work_time_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/"+empID+"/work_time_summaries/");
+    }
+
+    @Then("^validate response code for get work time endpoint$")
+    public void validate_response_code_for_get_work_time_endpoint() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    	
+    }
+    
+    @Given("^payload for geting work code$")
+    public void payload_for_geting_work_code() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","application/json")
+    			.header("Authorization","jwt "+token);    
+    	}
+
+    @When("^user calls get work code API with POST http request$")
+    public void user_calls_get_work_code_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("work_codes/");
+    }
+
+    @Then("^validate response code for get work code endpoint$")
+    public void validate_response_code_for_get_work_code_endpoint() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    	
+    }
+    
+    @Given("^payload for calculating report$")
+    public void payload_for_calculate_work_time() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","application/json")
+    			.header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"start_date\": \"2020-07-01\",\r\n"
+    					+ "    \"end_date\":\"2021-07-17\",\r\n"
+    					+ "    \"employees\":\""+empID+"\"\r\n"
+    					+ "}");    
+    	}
+
+    @When("^user calls calculate report API with POST http request$")
+    public void user_calls_calculate_report_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("calculate/");
+    }
+
+    @Then("^validate response code for calculate report endpoint$")
+    public void validate_response_code_for_calculate_report_endpoint() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    	
+    }
+    
+    @Given("^payload for geting report$")
+    public void payload_for_geting_report() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","application/json")
+    			.header("Authorization","jwt "+token)
+    			.queryParam("employees", "http://192.168.13.12:80/mobile/api/v1.0/")
+    			.queryParam("page_size", "1");
+    	}
+
+    @When("^user calls get report API with POST http request$")
+    public void user_calls_get_report_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/"+empID+"/reports/");
+    }
+
+    @Then("^validate response code for get report endpoint$")
+    public void validate_response_code_for_get_report_endpoint() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    	
+    }
+    @Given("^payload for retrieving schedule summary$")
+    public void payload_for_retrieving_schedule_summary() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","application/json")
+    			.header("Authorization","jwt "+token)
+    			.queryParam("page_size", "1")
+    			.queryParam("page_size", "2");
+    }
+
+    @When("^user calls get schedule summary API with GET http request$")
+    public void user_calls_get_schedule_summary_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/"+empID+"/schedule_summaries/");
+    }
+
+    @Then("^validate response code for retrieving schedule summary$")
+    public void validate_response_code_for_retrieving_schedule_summary() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for retrieving shift$")
+    public void payload_for_retrieving_shift() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get shift API with GET http request$")
+    public void user_calls_get_shift_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("}employees/"+empID+"/shifts/");
+    }
+
+    @Then("^validate response code for retrieving shift$")
+    public void validate_response_code_for_retrieving_shift() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for applying schedule$")
+    public void payload_for_applying_schedule() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"att_date\": \"2020-07-22\",\r\n"
+    					+ "    \"adjust_shift\": \"1\",\r\n"
+    					+ "    \"remark\": \"etst\"\r\n"
+    					+ "}");
+    }
+
+    @When("^user calls apply schedule API with POST http request$")
+    public void user_calls_apply_schedule_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/schedules/");
+    }
+
+    @Then("^validate response code for applying schedule$")
+    public void validate_response_code_for_applying_schedule() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    	scheduleID=getJsonPath(responseObj, "id");
+    	System.out.println("scheduleID "+scheduleID);
+    }
+    
+    @Given("^payload for retrieving schedule application$")
+    public void payload_for_retrieving_schedule_application() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","application/json")
+    			.header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get schedule application API with GET http request$")
+    public void user_calls_get_schedule_application_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/"+empID+"/schedules/");
+    }
+
+    @Then("^validate response code for retrieving schedule application$")
+    public void validate_response_code_for_retrieving_schedule_application() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for retrieving schedule approval$")
+    public void payload_for_retrieving_schedule_approval() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","approval/json")
+    			.header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get schedule approval API with GET http request$")
+    public void user_calls_get_schedule_approval_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/"+empID+"/team_members_schedules/");
+    }
+
+    @Then("^validate response code for retrieving schedule approval$")
+    public void validate_response_code_for_retrieving_schedule_approval() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for approving schedule$")
+    public void payload_for_approving_schedule() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"approve_status\": 2,\r\n"
+    					+ "    \"remark\": \"ok\"\r\n"
+    					+ "}");
+    }
+
+    @When("^user calls approve schedule API with POST http request$")
+    public void user_calls_approve_schedule_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/schedules/"+scheduleID+"/approve/");
+    }
+
+    @Then("^validate response code for approving schedule$")
+    public void validate_response_code_for_approving_schedule() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for revoking schedule$")
+    public void payload_for_revoking_schedule() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls revoke schedule API with POST http request$")
+    public void user_calls_revoke_schedule_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/schedules/"+scheduleID+"/revoke/");
+    }
+
+    @Then("^validate response code for revoking schedule$")
+    public void validate_response_code_for_revoking_schedule() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for deleting schedule$")
+    public void payload_for_deleting_schedule() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls delete schedule API with DELETE http request$")
+    public void user_calls_delete_schedule_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.delete("employees/"+empID+"/schedules/"+scheduleID+"/");
+    }
+
+    @Then("^validate response code for deleting schedule$")
+    public void validate_response_code_for_deleting_schedule() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for retrieving schedule approval flow$")
+    public void payload_for_retrieving_schedule_approval_flow() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","approval/json")
+    			.header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get schedule approval flow API with GET http request$")
+    public void user_calls_get_schedule_approval_flow_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("schedules/"+scheduleID+"/approve_flows/");
+    }
+
+    @Then("^validate response code for retrieving schedule approval flow$")
+    public void validate_response_code_for_retrieving_schedule_approval_flow() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for retrieving training categories$")
+    public void payload_for_retrieving_training_categories() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get training categories API with GET http request$")
+    public void user_calls_get_training_categories_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("training_catogries/");
+    }
+
+    @Then("^validate response code for retrieving training categories$")
+    public void validate_response_code_for_retrieving_training_categories() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for applying training$")
+    public void payload_for_applying_training() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"start\": \"1674971623\",\r\n"
+    					+ "    \"end\": \"1674971626\"\r\n"
+    					+ "}");
+    }
+
+    @When("^user calls apply training API with POST http request$")
+    public void user_calls_apply_training_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/trainings/");
+    }
+
+    @Then("^validate response code for applying training$")
+    public void validate_response_code_for_applying_training() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    	trainingID=getJsonPath(responseObj, "id");
+    	System.out.println("manualLogID "+manualLogID);
+    }
+    
+    @Given("^payload for retrieving training application$")
+    public void payload_for_retrieving_training_application() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","application/json")
+    			.header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get training application API with GET http request$")
+    public void user_calls_get_training_application_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/"+empID+"/trainings/");
+    }
+
+    @Then("^validate response code for retrieving training application$")
+    public void validate_response_code_for_retrieving_training_application() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for retrieving training approval$")
+    public void payload_for_retrieving_training_approval() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","approval/json")
+    			.header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get training approval API with GET http request$")
+    public void user_calls_get_training_approval_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/"+empID+"/team_members_trainings/");
+    }
+
+    @Then("^validate response code for retrieving training approval$")
+    public void validate_response_code_for_retrieving_training_approval() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for approving training$")
+    public void payload_for_approving_training() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"approve_status\": 2\r\n"
+    					+ "}");
+    }
+
+    @When("^user calls approve training API with POST http request$")
+    public void user_calls_approve_training_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/trainings/"+trainingID+"/approve/");
+    }
+
+    @Then("^validate response code for approving training$")
+    public void validate_response_code_for_approving_training() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for revoking training$")
+    public void payload_for_revoking_training() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls revoke training API with POST http request$")
+    public void user_calls_revoke_training_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/trainings/"+trainingID+"/revoke/");
+    }
+
+    @Then("^validate response code for revoking training$")
+    public void validate_response_code_for_revoking_training() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for deleting training$")
+    public void payload_for_deleting_training() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls delete training API with DELETE http request$")
+    public void user_calls_delete_training_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.delete("employees/"+empID+"/trainings/"+trainingID+"/");
+    }
+
+    @Then("^validate response code for deleting training$")
+    public void validate_response_code_for_deleting_training() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for retrieving training approval flow$")
+    public void payload_for_retrieving_training_approval_flow() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","approval/json")
+    			.header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get training approval flow API with GET http request$")
+    public void user_calls_get_training_approval_flow_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("trainings/"+trainingID+"/approve_flows/");
+    }
+
+    @Then("^validate response code for retrieving training approval flow$")
+    public void validate_response_code_for_retrieving_training_approval_flow() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for updating att policy$")
+    public void payload_for_updating_att_policy() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"enable_capture\":1,\r\n"
+    					+ "    \"enable_workcode\": 0,\r\n"
+    					+ "    \"enable_funckey\": 0\r\n"
+    					+ "}");
+    }
+
+    @When("^user calls updating att policy API with POST http request$")
+    public void user_calls_update_att_policy_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("att_policy/");
+    }
+
+    @Then("^validate response code for updating att policy$")
+    public void validate_response_code_for__updating_att_policy() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+
+    }
+    
+    @Given("^payload for getting att policy$")
+    public void payload_for_getting_att_policy() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get att policy API with GET http request$")
+    public void user_calls_get_att_policy_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("att_policy/");
+    }
+
+    @Then("^validate response code for getting att policy$")
+    public void validate_response_code_for_getting_att_policy() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    @Given("^payload for retrieving reimbursement allowance type$")
+    public void payload_for_retrieving_reimbursement_allowance_type() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","application/json")
+    			.header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get reimbursement allowance type API with GET http request$")
+    public void user_calls_get_reimbursement_allowance_type_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("reimbursement_allowance_type/");
+    }
+
+    @Then("^validate response code for retrieving reimbursement allowance type$")
+    public void validate_response_code_for_retrieving_reimbursement_allowance_type() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for retrieving reimbursement purpose type$")
+    public void payload_for_retrieving_reimbursement_purpose_type() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","application/json")
+    			.header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get reimbursement purpose type API with GET http request$")
+    public void user_calls_get_reimbursement_purpose_type_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("reimbursement_purpose_type/");
+    }
+
+    @Then("^validate response code for retrieving reimbursement purpose type$")
+    public void validate_response_code_for_retrieving_reimbursement_purpose_type() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for applying reimbursement$")
+    public void payload_for_applying_reimbursement() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"rmb_start_date\" : \"1600870620\",\r\n"
+    					+ "    \"rmb_end_date\" : \"1600881421\",\r\n"
+    					+ "    \"rmb_amount\": 4500,\r\n"
+    					+ "    \"allowance_type\":100,\r\n"
+    					+ "    \"purpose_type\":101,\r\n"
+    					+ "      \"additional_employee\" :[]\r\n"
+    					+ "\r\n"
+    					+ "}");
+    }
+
+    @When("^user calls apply reimbursement API with POST http request$")
+    public void user_calls_apply_reimbursement_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/reimbursement/");
+    }
+
+    @Then("^validate response code for applying reimbursement$")
+    public void validate_response_code_for_applying_reimbursement() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    	reimbursementID=getJsonPath(responseObj, "id");
+    	System.out.println("reimbursementID "+reimbursementID);
+    }
+    
+    @Given("^payload for retrieving reimbursement application$")
+    public void payload_for_retrieving_reimbursement_application() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","application/json")
+    			.header("Authorization","jwt "+token)
+    			.queryParam("rmb_start_date_gte", "2020-07-01")
+    			.queryParam("rmb_end_date_lte", "2020-08-05");
+    	}
+
+    @When("^user calls get reimbursement application API with GET http request$")
+    public void user_calls_get_reimbursement_application_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/"+empID+"/reimbursements/");
+    }
+
+    @Then("^validate response code for retrieving reimbursement application$")
+    public void validate_response_code_for_retrieving_reimbursement_application() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for retrieving reimbursement approval$")
+    public void payload_for_retrieving_reimbursement_approval() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","approval/json")
+    			.header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get reimbursement approval API with GET http request$")
+    public void user_calls_get_reimbursement_approval_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("employees/"+empID+"/team_members_reimbursements/");
+    }
+
+    @Then("^validate response code for retrieving reimbursement approval$")
+    public void validate_response_code_for_retrieving_reimbursement_approval() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for approving reimbursement$")
+    public void payload_for_approving_reimbursement() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token)
+    			.body("{\r\n"
+    					+ "    \"approve_status\": 2   \r\n"
+    					+ "}");
+    }
+
+    @When("^user calls approve reimbursement API with POST http request$")
+    public void user_calls_approve_reimbursement_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/reimbursements/"+reimbursementID+"/approve/");
+    }
+
+    @Then("^validate response code for approving reimbursement$")
+    public void validate_response_code_for_approving_reimbursement() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for revoking reimbursement$")
+    public void payload_for_revoking_reimbursement() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls revoke reimbursement API with POST http request$")
+    public void user_calls_revoke_reimbursement_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("employees/"+empID+"/reimbursements/"+reimbursementID+"/revoke/");
+    }
+
+    @Then("^validate response code for revoking reimbursement$")
+    public void validate_response_code_for_revoking_reimbursement() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for deleting reimbursement$")
+    public void payload_for_deleting_reimbursement() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls delete reimbursement API with DELETE http request$")
+    public void user_calls_delete_reimbursement_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.delete("employees/"+empID+"/reimbursement/"+reimbursementID+"/");
+    }
+
+    @Then("^validate response code for deleting reimbursement$")
+    public void validate_response_code_for_deleting_reimbursement() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+    @Given("^payload for retrieving reimbursement approval flow$")
+    public void payload_for_retrieving_reimbursement_approval_flow() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile"))
+    			.header("Content-type","approval/json")
+    			.header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get reimbursement approval flow API with GET http request$")
+    public void user_calls_get_reimbursement_approval_flow_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("reimbursements/"+reimbursementID+"/approve_flows/");
+    }
+
+    @Then("^validate response code for retrieving reimbursement approval flow$")
+    public void validate_response_code_for_retrieving_reimbursement_approval_flow() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for retrieving location$")
+    public void payload_for_retrieving_location() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get location API with GET http request$")
+    public void user_calls_get_location_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("location/");
+    }
+
+    @Then("^validate response code for retrieving location$")
+    public void validate_response_code_for_geting_location() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    
+    @Given("^payload for retrieving holiday$")
+    public void payload_for_retrieving_holiday() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls get holiday API with GET http request$")
+    public void user_calls_get_holiday_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.get("holiday/");
+    }
+
+    @Then("^validate response code for retrieving holiday$")
+    public void validate_response_code_for_geting_holiday() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(200).extract().response();
+    }
+    
+    @Given("^payload for creating company$")
+    public void payload_for_creating_company() throws Throwable {
+    	reqSpec = given().log().all().spec(requestSpecification("ETProMobile")).header("Content-type","application/json").header("Authorization","jwt "+token);
+    }
+
+    @When("^user calls create company API with create http request$")
+    public void user_calls_create_company_api_with_post_http_request() throws Throwable {
+    	validation_responseObj = reqSpec.post("company/");
+    }
+
+    @Then("^validate response code for creating company$")
+    public void validate_response_code_for_createing_company() throws Throwable {
+    	responseObj=validation_responseObj.then().log().all().assertThat().statusCode(201).extract().response();
+    }
+    
+}
